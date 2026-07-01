@@ -162,9 +162,26 @@ function webFetchBridge(fetchHandler) {
 
 async function getSsrHandler() {
   if (ssrHandler) return ssrHandler;
-  if (fs.existsSync(ssrServerPath)) {
+
+  const possiblePaths = [
+    path.join(process.cwd(), 'dist', 'server', 'server.js'),
+    path.join(__dirname, '..', 'dist', 'server', 'server.js'),
+    path.join(__dirname, 'dist', 'server', 'server.js')
+  ];
+
+  let foundPath = null;
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      foundPath = p;
+      break;
+    }
+  }
+
+  if (foundPath) {
     try {
-      const m = await import(ssrServerPath);
+      console.log(`🔍 Found SSR Server at: ${foundPath}`);
+      // Use standard import with dynamic path
+      const m = await import(foundPath);
       const ssrApp = m.default || m;
       if (ssrApp && typeof ssrApp.fetch === 'function') {
         ssrHandler = webFetchBridge(ssrApp.fetch);
@@ -173,6 +190,14 @@ async function getSsrHandler() {
       }
     } catch (err) {
       console.error('❌ Failed to load SSR handler in serverless context:', err);
+    }
+  } else {
+    console.warn('⚠️ Could not find ssr server.js in possible paths:', possiblePaths);
+    try {
+      console.log('CWD contents:', fs.readdirSync(process.cwd()));
+      console.log('__dirname contents:', fs.readdirSync(__dirname));
+    } catch (e) {
+      console.error('Failed to list directories:', e);
     }
   }
   return null;
