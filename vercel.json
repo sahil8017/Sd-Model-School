@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "outputDirectory": "dist/client",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.cjs" },
+    { "source": "/uploads/(.*)", "destination": "/api/index.cjs" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

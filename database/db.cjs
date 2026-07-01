@@ -5,6 +5,9 @@ const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) throw new Error('MONGODB_URI is not set in environment variables.');
 
 async function connect() {
+  if (mongoose.connection.readyState >= 1) {
+    return mongoose.connection;
+  }
   await mongoose.connect(MONGODB_URI, { dbName: 'sdmodel' });
   console.log('✅ MongoDB connected');
   await seedAdmin();

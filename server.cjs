@@ -101,14 +101,19 @@ app.get('*', (_req, res) => {
 
 // ── Connect MongoDB then start ─────────────────────────────────────────────
 const { connect } = require('./database/db.cjs');
-connect()
-  .then(() => {
+
+const dbPromise = connect().catch(err => {
+  console.error('❌  MongoDB connection failed:', err.message);
+  if (require.main === module) process.exit(1);
+});
+
+if (require.main === module) {
+  dbPromise.then(() => {
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n🏫  S.D. Model Sr. Sec. School — Management System`);
       console.log(`🚀  http://0.0.0.0:${PORT}  [${process.env.NODE_ENV || 'development'}]\n`);
     });
-  })
-  .catch(err => {
-    console.error('❌  MongoDB connection failed:', err.message);
-    process.exit(1);
   });
+}
+
+module.exports = app;
