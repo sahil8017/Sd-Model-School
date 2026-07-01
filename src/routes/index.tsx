@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { SchoolFooter } from "@/components/app/SchoolFooter";
-import { ArrowRight, ShieldCheck, Users, CalendarDays, Mail } from "lucide-react";
+import { ArrowRight, ShieldCheck, Users, CalendarDays, Mail, Menu, X } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/")({
 function Landing() {
   const { session } = useAuth();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (session) navigate({ to: session.role === "admin" ? "/admin" : "/teacher" });
@@ -41,7 +42,9 @@ function Landing() {
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="mx-auto max-w-6xl glass-nav rounded-full px-3 py-2 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]"
+          className={`mx-auto max-w-6xl glass-nav px-3 py-2 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)] transition-all duration-300 ${
+            mobileMenuOpen ? "rounded-2xl" : "rounded-full"
+          }`}
         >
           <div className="flex items-center justify-between gap-3">
             <Link to="/" className="flex items-center gap-3 group">
@@ -61,14 +64,65 @@ function Landing() {
               <Link to="/public/calendar" className="nav-spot rounded-full px-4 py-1.5 text-xs text-white/90 hover:text-white hover:bg-white/[0.1]">Calendar</Link>
             </nav>
 
+            <div className="flex items-center gap-2">
+              <Link to="/login">
+                <Button className="h-9 px-4 sm:px-5 bg-crimson hover:bg-crimson/90 text-crimson-foreground text-xs sm:text-sm">
+                  Go to Login <ArrowRight className="ml-1 h-4 w-4" />
+                </Button>
+              </Link>
 
-
-            <Link to="/login">
-              <Button className="h-9 px-5 bg-crimson hover:bg-crimson/90 text-crimson-foreground">
-                Go to Login <ArrowRight className="ml-1 h-4 w-4" />
-              </Button>
-            </Link>
+              {/* Mobile menu toggle */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle navigation menu"
+                className="md:hidden flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] border border-white/10 text-white hover:bg-white/[0.14] transition-colors"
+              >
+                {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
+
+          {/* Animated Mobile dropdown menu */}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <motion.nav
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="md:hidden flex flex-col gap-1 mt-2 px-2 py-3 border-t border-white/10"
+              >
+                <a
+                  href="#top"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="nav-spot rounded-xl px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-white/[0.1] transition-colors"
+                >
+                  Home
+                </a>
+                <a
+                  href="#features"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="nav-spot rounded-xl px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-white/[0.1] transition-colors"
+                >
+                  Features
+                </a>
+                <Link
+                  to="/public/faculty"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="nav-spot rounded-xl px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-white/[0.1] transition-colors"
+                >
+                  Faculty
+                </Link>
+                <Link
+                  to="/public/calendar"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="nav-spot rounded-xl px-4 py-2 text-sm text-white/90 hover:text-white hover:bg-white/[0.1] transition-colors"
+                >
+                  Calendar
+                </Link>
+              </motion.nav>
+            )}
+          </AnimatePresence>
         </motion.header>
       </div>
 

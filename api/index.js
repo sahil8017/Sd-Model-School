@@ -96,52 +96,6 @@ app.use('/api/attendance', attendanceRouter);
 app.use('/api/grades',     gradesRouter);
 app.use('/api/email',      emailRouter);
 
-// ── Debug Route ──────────────────────────────────────────────────────────────
-app.get('/api/debug-files', async (req, res) => {
-  try {
-    const cwd = process.cwd();
-    const contents = {
-      cwd,
-      __dirname,
-      cwdFiles: fs.readdirSync(cwd),
-      dirFiles: fs.readdirSync(__dirname),
-    };
-    const distPath = path.join(cwd, 'dist');
-    if (fs.existsSync(distPath)) {
-      contents.distExists = true;
-      contents.distFiles = fs.readdirSync(distPath);
-      const serverPath = path.join(distPath, 'server');
-      if (fs.existsSync(serverPath)) {
-        contents.serverExists = true;
-        contents.serverFiles = fs.readdirSync(serverPath);
-        const assetsPath = path.join(serverPath, 'assets');
-        if (fs.existsSync(assetsPath)) {
-          contents.assetsExists = true;
-          contents.assetsFiles = fs.readdirSync(assetsPath);
-        }
-      }
-    } else {
-      contents.distExists = false;
-    }
-
-    // Try to import server.js and check the error
-    const ssrPath = path.join(cwd, 'dist', 'server', 'server.js');
-    try {
-      const m = await import(ssrPath);
-      contents.importSuccess = true;
-      contents.exports = Object.keys(m);
-    } catch (importErr) {
-      contents.importSuccess = false;
-      contents.importError = importErr.message;
-      contents.importErrorStack = importErr.stack;
-    }
-
-    res.json(contents);
-  } catch (err) {
-    res.status(500).json({ error: err.message, stack: err.stack });
-  }
-});
-
 // ── Stats ─────────────────────────────────────────────────────────────────────
 app.get('/api/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {

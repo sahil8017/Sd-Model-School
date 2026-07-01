@@ -16,7 +16,7 @@ export function UserMenu() {
 
   if (!session) return null;
   const initials = session.name.split(" ").slice(-2).map((p) => p[0]).join("").toUpperCase();
-  const profileUrl = session.role === "admin" ? "/admin/profile" : "/teacher";
+  const profileUrl = session.role === "admin" ? "/admin/profile" : "/teacher/profile";
 
   return (
     <div className="flex items-center gap-2">

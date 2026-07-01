@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeacherIndexRouteImport } from './routes/teacher.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TeacherStudentsRouteImport } from './routes/teacher.students'
+import { Route as TeacherProfileRouteImport } from './routes/teacher.profile'
 import { Route as TeacherGradebookRouteImport } from './routes/teacher.gradebook'
 import { Route as TeacherComplaintsRouteImport } from './routes/teacher.complaints'
 import { Route as TeacherAttendanceRouteImport } from './routes/teacher.attendance'
@@ -58,6 +59,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const TeacherStudentsRoute = TeacherStudentsRouteImport.update({
   id: '/students',
   path: '/students',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherProfileRoute = TeacherProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => TeacherRoute,
 } as any)
 const TeacherGradebookRoute = TeacherGradebookRouteImport.update({
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/teacher/attendance': typeof TeacherAttendanceRoute
   '/teacher/complaints': typeof TeacherComplaintsRoute
   '/teacher/gradebook': typeof TeacherGradebookRoute
+  '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/students': typeof TeacherStudentsRoute
   '/admin/': typeof AdminIndexRoute
   '/teacher/': typeof TeacherIndexRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/teacher/attendance': typeof TeacherAttendanceRoute
   '/teacher/complaints': typeof TeacherComplaintsRoute
   '/teacher/gradebook': typeof TeacherGradebookRoute
+  '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/students': typeof TeacherStudentsRoute
   '/admin': typeof AdminIndexRoute
   '/teacher': typeof TeacherIndexRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/teacher/attendance': typeof TeacherAttendanceRoute
   '/teacher/complaints': typeof TeacherComplaintsRoute
   '/teacher/gradebook': typeof TeacherGradebookRoute
+  '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/students': typeof TeacherStudentsRoute
   '/admin/': typeof AdminIndexRoute
   '/teacher/': typeof TeacherIndexRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/teacher/attendance'
     | '/teacher/complaints'
     | '/teacher/gradebook'
+    | '/teacher/profile'
     | '/teacher/students'
     | '/admin/'
     | '/teacher/'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/teacher/attendance'
     | '/teacher/complaints'
     | '/teacher/gradebook'
+    | '/teacher/profile'
     | '/teacher/students'
     | '/admin'
     | '/teacher'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/teacher/attendance'
     | '/teacher/complaints'
     | '/teacher/gradebook'
+    | '/teacher/profile'
     | '/teacher/students'
     | '/admin/'
     | '/teacher/'
@@ -261,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/students'
       fullPath: '/teacher/students'
       preLoaderRoute: typeof TeacherStudentsRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/profile': {
+      id: '/teacher/profile'
+      path: '/profile'
+      fullPath: '/teacher/profile'
+      preLoaderRoute: typeof TeacherProfileRouteImport
       parentRoute: typeof TeacherRoute
     }
     '/teacher/gradebook': {
@@ -342,6 +361,7 @@ interface TeacherRouteChildren {
   TeacherAttendanceRoute: typeof TeacherAttendanceRoute
   TeacherComplaintsRoute: typeof TeacherComplaintsRoute
   TeacherGradebookRoute: typeof TeacherGradebookRoute
+  TeacherProfileRoute: typeof TeacherProfileRoute
   TeacherStudentsRoute: typeof TeacherStudentsRoute
   TeacherIndexRoute: typeof TeacherIndexRoute
 }
@@ -350,6 +370,7 @@ const TeacherRouteChildren: TeacherRouteChildren = {
   TeacherAttendanceRoute: TeacherAttendanceRoute,
   TeacherComplaintsRoute: TeacherComplaintsRoute,
   TeacherGradebookRoute: TeacherGradebookRoute,
+  TeacherProfileRoute: TeacherProfileRoute,
   TeacherStudentsRoute: TeacherStudentsRoute,
   TeacherIndexRoute: TeacherIndexRoute,
 }
