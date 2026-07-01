@@ -11,7 +11,7 @@
 const fs   = require('fs');
 const path = require('path');
 
-const publicDir  = path.join(__dirname, '..', '.output', 'public');
+const publicDir  = path.join(__dirname, '..', 'dist', 'client');
 const assetsDir  = path.join(publicDir, 'assets');
 
 if (!fs.existsSync(assetsDir)) {
@@ -55,6 +55,6 @@ const html = `<!doctype html>
 
 fs.writeFileSync(path.join(publicDir, 'index.html'), html, 'utf-8');
 
-console.log('✅  Generated .output/public/index.html');
+console.log('✅  Generated dist/client/index.html');
 console.log(`    JS : /assets/${mainJs}`);
 if (mainCss) console.log(`    CSS: /assets/${mainCss}`);

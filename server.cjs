@@ -79,7 +79,7 @@ app.get('/api/stats', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // ── Serve Frontend (Vite SPA build) ───────────────────────────────────────
-const staticPublicDir = path.join(__dirname, '.output', 'public');
+const staticPublicDir = path.join(__dirname, 'dist', 'client');
 const indexHtml       = path.join(staticPublicDir, 'index.html');
 
 if (fs.existsSync(staticPublicDir)) {

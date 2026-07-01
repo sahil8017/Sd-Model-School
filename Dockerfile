@@ -28,7 +28,7 @@ COPY database/      ./database/
 COPY services/      ./services/
 
 # Built frontend (static SPA assets + generated index.html)
-COPY --from=builder /app/.output/public ./.output/public
+COPY --from=builder /app/dist/client ./dist/client
 
 # Persistent uploads directory (writable by app user)
 RUN mkdir -p uploads
