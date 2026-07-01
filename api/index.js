@@ -97,7 +97,7 @@ app.use('/api/grades',     gradesRouter);
 app.use('/api/email',      emailRouter);
 
 // ── Debug Route ──────────────────────────────────────────────────────────────
-app.get('/api/debug-files', (req, res) => {
+app.get('/api/debug-files', async (req, res) => {
   try {
     const cwd = process.cwd();
     const contents = {
@@ -114,10 +114,28 @@ app.get('/api/debug-files', (req, res) => {
       if (fs.existsSync(serverPath)) {
         contents.serverExists = true;
         contents.serverFiles = fs.readdirSync(serverPath);
+        const assetsPath = path.join(serverPath, 'assets');
+        if (fs.existsSync(assetsPath)) {
+          contents.assetsExists = true;
+          contents.assetsFiles = fs.readdirSync(assetsPath);
+        }
       }
     } else {
       contents.distExists = false;
     }
+
+    // Try to import server.js and check the error
+    const ssrPath = path.join(cwd, 'dist', 'server', 'server.js');
+    try {
+      const m = await import(ssrPath);
+      contents.importSuccess = true;
+      contents.exports = Object.keys(m);
+    } catch (importErr) {
+      contents.importSuccess = false;
+      contents.importError = importErr.message;
+      contents.importErrorStack = importErr.stack;
+    }
+
     res.json(contents);
   } catch (err) {
     res.status(500).json({ error: err.message, stack: err.stack });
