@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
 const bcrypt   = require('bcryptjs');
 
-const MONGODB_URI = process.env.MONGODB_URI;
-if (!MONGODB_URI) throw new Error('MONGODB_URI is not set in environment variables.');
-
 async function connect() {
+  const MONGODB_URI = process.env.MONGODB_URI;
+  if (!MONGODB_URI) {
+    throw new Error('MONGODB_URI is not set in environment variables.');
+  }
   if (mongoose.connection.readyState >= 1) {
     return mongoose.connection;
   }
