@@ -10,7 +10,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "api": "node server.cjs",
-    "start": "node server.cjs",
+    "start": "/bin/sh start.sh",
+    "start:nitro": "node .output/server/index.mjs",
+    "start:api": "node server.cjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

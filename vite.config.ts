@@ -12,12 +12,28 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Use 'node' preset so the build produces a plain Node.js HTTP server
+  // (.output/server/index.mjs) that works inside Docker / Hugging Face Spaces.
+  //
+  // routeRules proxy /api/* and /uploads/* to the Express API server
+  // which runs on port 3001 internally (started by start.sh alongside Nitro).
+  nitro: {
+    preset: "node",
+    routeRules: {
+      "/api/**": { proxy: "http://127.0.0.1:3001/api/**" },
+      "/uploads/**": { proxy: "http://127.0.0.1:3001/uploads/**" },
+    },
+  },
   vite: {
     server: {
-      // Proxy /api/* to the Express backend (port 3001) for SMS + data APIs in dev
+      // Proxy /api/* and /uploads/* to the Express backend in dev (port 3001)
       proxy: {
         "/api": {
-          target: `http://localhost:${process.env.PORT || 3001}`,
+          target: `http://localhost:3001`,
+          changeOrigin: true,
+        },
+        "/uploads": {
+          target: `http://localhost:3001`,
           changeOrigin: true,
         },
       },

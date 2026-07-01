@@ -1,17 +1,35 @@
+/**
+ * Express API server — handles /api/* and /uploads/* only.
+ *
+ * In production (Docker / Hugging Face Spaces):
+ *   - This server listens on port 3001 (API_PORT env var).
+ *   - The Nitro SSR server (.output/server/index.mjs) listens on port 7860
+ *     (PORT env var) and is started separately by the Dockerfile CMD.
+ *   - Requests flow: Browser → Nitro :7860 → Express :3001 (for /api/*)
+ *
+ * In development:
+ *   - Run `npm run api`  → starts Express on port 3001
+ *   - Run `npm run dev`  → starts Vite dev server which proxies /api/* to :3001
+ */
+
 require('dotenv').config();
 const express = require('express');
 const path    = require('path');
 const cors    = require('cors');
 const fs      = require('fs');
 
-const app  = express();
-const PORT = parseInt(process.env.PORT || '7860', 10);
+const app      = express();
+// API server always runs on 3001 internally; the public-facing port (7860)
+// belongs to the Nitro SSR server.
+const API_PORT = parseInt(process.env.API_PORT || '3001', 10);
 
 // ── Uploads directory ──────────────────────────────────────────────────────
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // ── CORS ───────────────────────────────────────────────────────────────────
+// In production the Nitro SSR server is on the same origin, so CORS is only
+// needed for local dev (Vite on :5173 → Express on :3001).
 const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
 const corsOptions = allowedOrigin === '*'
   ? { origin: true, credentials: true }
@@ -37,7 +55,6 @@ const { Teacher, Student, Attendance, Grade } = require('./database/models.cjs')
 
 app.get('/api/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
     const [totalTeachers, totalStudents, recentAtt, recentGrades] =
       await Promise.all([
         Teacher.countDocuments(),
@@ -61,26 +78,16 @@ app.get('/api/stats', authenticateToken, requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── Serve Frontend (static SPA build) ──────────────────────────────────────
-const staticPublicDir = path.join(__dirname, '.output', 'public');
-const indexHtml = path.join(staticPublicDir, 'index.html');
-
-if (fs.existsSync(staticPublicDir)) {
-  app.use(express.static(staticPublicDir, { index: ['index.html'] }));
-}
-
-// SPA fallback for all remaining routes (not API, not uploads, not static files)
-app.get('*', (req, res) => {
-  res.sendFile(indexHtml);
-});
+// ── Health check (used by Nitro proxy & Docker HEALTHCHECK) ───────────────
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 // ── Connect MongoDB then start ─────────────────────────────────────────────
 const { connect } = require('./database/db.cjs');
 connect()
   .then(() => {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n🏫  S.D. Model Sr. Sec. School — Management System`);
-      console.log(`🚀  http://0.0.0.0:${PORT}  [${process.env.NODE_ENV || 'development'}]\n`);
+    app.listen(API_PORT, '127.0.0.1', () => {
+      console.log(`✅  MongoDB connected`);
+      console.log(`📡  Express API  → http://127.0.0.1:${API_PORT}  [${process.env.NODE_ENV || 'development'}]`);
     });
   })
   .catch(err => {
