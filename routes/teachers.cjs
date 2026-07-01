@@ -1,26 +1,10 @@
 const express = require('express');
 const bcrypt   = require('bcryptjs');
 const crypto   = require('crypto');
-const multer   = require('multer');
 const { Teacher, Student, Attendance } = require('../database/models.cjs');
 const { authenticateToken, requireAdmin } = require('../middleware/auth.cjs');
 
 const router = express.Router();
-
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-
-// Use memoryStorage — Vercel's filesystem is read-only (no disk writes allowed).
-// Files are held in req.file.buffer and saved as base64 data URLs in MongoDB.
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits:     { fileSize: 3 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => cb(null, ALLOWED_MIME.has(file.mimetype)),
-});
-
-function fileToDataUrl(file) {
-  if (!file) return undefined;
-  return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-}
 
 function generateEmail(name) {
   const parts = name.trim().toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
@@ -97,7 +81,7 @@ router.get('/:id/stats', authenticateToken, async (req, res) => {
 });
 
 // POST create teacher (admin only)
-router.post('/', authenticateToken, requireAdmin, upload.single('profile_pic'), async (req, res) => {
+router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { name, date_joined_school, designation } = req.body;
     if (!name || !date_joined_school)
@@ -123,7 +107,6 @@ router.post('/', authenticateToken, requireAdmin, upload.single('profile_pic'), 
       personal_email:         req.body.personal_email         || undefined,
       school_email,
       password_hash:          bcrypt.hashSync(plainPassword, 10),
-      profile_pic_url:        fileToDataUrl(req.file),
       educational_background: req.body.educational_background || undefined,
       classes_taught:         Array.isArray(classes)  ? classes  : [],
       subjects_taught:        Array.isArray(subjects) ? subjects : [],
@@ -145,7 +128,7 @@ router.post('/', authenticateToken, requireAdmin, upload.single('profile_pic'), 
 });
 
 // PUT update teacher (admin only)
-router.put('/:id', authenticateToken, requireAdmin, upload.single('profile_pic'), async (req, res) => {
+router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const t = await Teacher.findById(req.params.id);
     if (!t) return res.status(404).json({ error: 'Teacher not found' });
@@ -170,7 +153,6 @@ router.put('/:id', authenticateToken, requireAdmin, upload.single('profile_pic')
         ? parseFloat(req.body.salary_amount) : t.salary_amount,
       designation:            req.body.designation            || t.designation,
     };
-    if (req.file) updates.profile_pic_url = fileToDataUrl(req.file);
 
     const updated = await Teacher.findByIdAndUpdate(req.params.id, updates, { new: true });
     res.json(safe(updated));

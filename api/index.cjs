@@ -5,7 +5,6 @@
  *  - Each invocation is stateless (no persistent in-memory state).
  *  - MongoDB connection is cached across warm invocations via the module cache.
  *  - Dynamic ESM import() of local files is avoided (CJS runtime limitation).
- *  - File uploads via multer are disabled (no persistent filesystem on Vercel).
  */
 
 'use strict';

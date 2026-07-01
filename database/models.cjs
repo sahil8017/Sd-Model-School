@@ -15,7 +15,6 @@ const teacherSchema = new mongoose.Schema({
   personal_email:         String,
   school_email:           { type: String, required: true, unique: true, lowercase: true, trim: true },
   password_hash:          { type: String, required: true },
-  profile_pic_url:        String,
   educational_background: String,
   classes_taught:         { type: [String], default: [] },
   subjects_taught:        { type: [String], default: [] },
@@ -35,7 +34,6 @@ const studentSchema = new mongoose.Schema({
   class_name:            { type: String, required: true },
   roll_no:               Number,
   overall_grade:         String,
-  profile_pic_url:       String,
   teacher_id:            { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', index: true },
 }, { timestamps: true });
 
