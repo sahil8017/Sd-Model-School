@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "postbuild": "node scripts/generate-index.cjs",
+    "vercel-build": "vite build && node scripts/generate-index.cjs",
     "preview": "vite preview",
     "api": "node server.cjs",
     "start": "node server.cjs",

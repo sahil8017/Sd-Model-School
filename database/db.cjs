@@ -90,4 +90,4 @@ async function seedTeachers() {
   }
 }
 
-module.exports = { connect };
+module.exports = { connect, seedAdmin, seedTeachers };
