@@ -4,8 +4,8 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.cjs" },
-    { "source": "/uploads/(.*)", "destination": "/api/index.cjs" },
-    { "source": "/(.*)", "destination": "/api/index.cjs" }
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/uploads/(.*)", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/api" }
   ]
 }
