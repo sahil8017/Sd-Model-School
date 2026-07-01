@@ -1,23 +1,41 @@
 /**
- * Vercel Serverless Function entry point.
+ * Vercel Serverless Function entry point (ES Module).
  *
  * Key differences from a long-running Express server:
  *  - Each invocation is stateless (no persistent in-memory state).
  *  - MongoDB connection is cached across warm invocations via the module cache.
- *  - Dynamic ESM import() of local files is avoided during trace, but loaded via includeFiles.
  */
 
-'use strict';
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import mongoose from 'mongoose';
+import { fileURLToPath } from 'url';
 
-require('dotenv').config();
+// ── Resolve __dirname for ES Modules ─────────────────────────────────────────
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const express  = require('express');
-const cors     = require('cors');
-const path     = require('path');
-const fs       = require('fs');
-const mongoose = require('mongoose');
+// ── Import CJS modules via ESM imports ───────────────────────────────────────
+import dbModule from '../database/db.cjs';
+const { seedAdmin, seedTeachers } = dbModule;
 
-// ── Cached DB connection (survives warm Lambda restarts) ─────────────────────
+import authRouter from '../routes/auth.cjs';
+import teachersRouter from '../routes/teachers.cjs';
+import studentsRouter from '../routes/students.cjs';
+import attendanceRouter from '../routes/attendance.cjs';
+import gradesRouter from '../routes/grades.cjs';
+import emailRouter from '../routes/email.cjs';
+
+import authMiddleware from '../middleware/auth.cjs';
+const { authenticateToken, requireAdmin } = authMiddleware;
+
+import modelsModule from '../database/models.cjs';
+const { Teacher, Student, Attendance, Grade } = modelsModule;
+
+// ── Cached DB connection ─────────────────────────────────────────────────────
 let dbConnected = false;
 
 async function ensureDb() {
@@ -32,7 +50,6 @@ async function ensureDb() {
   console.log('✅ MongoDB connected (serverless)');
 
   // Seed admin + teachers on first cold start
-  const { seedAdmin, seedTeachers } = require('../database/db.cjs');
   if (typeof seedAdmin === 'function')   await seedAdmin().catch(console.error);
   if (typeof seedTeachers === 'function') await seedTeachers().catch(console.error);
 }
@@ -49,7 +66,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (curl, Postman, same-origin SSR)
     if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
       return cb(null, true);
     }
@@ -73,17 +89,14 @@ app.use(async (_req, _res, next) => {
 });
 
 // ── API Routes ────────────────────────────────────────────────────────────────
-app.use('/api/auth',       require('../routes/auth.cjs'));
-app.use('/api/teachers',   require('../routes/teachers.cjs'));
-app.use('/api/students',   require('../routes/students.cjs'));
-app.use('/api/attendance', require('../routes/attendance.cjs'));
-app.use('/api/grades',     require('../routes/grades.cjs'));
-app.use('/api/email',      require('../routes/email.cjs'));
+app.use('/api/auth',       authRouter);
+app.use('/api/teachers',   teachersRouter);
+app.use('/api/students',   studentsRouter);
+app.use('/api/attendance', attendanceRouter);
+app.use('/api/grades',     gradesRouter);
+app.use('/api/email',      emailRouter);
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
-const { authenticateToken, requireAdmin } = require('../middleware/auth.cjs');
-const { Teacher, Student, Attendance, Grade } = require('../database/models.cjs');
-
 app.get('/api/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [totalTeachers, totalStudents, recentAtt, recentGrades] =
@@ -180,4 +193,4 @@ app.get('*', async (req, res) => {
   }
 });
 
-module.exports = app;
+export default app;

@@ -3,12 +3,12 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist/client",
   "functions": {
-    "api/index.cjs": {
+    "api/index.js": {
       "includeFiles": "dist/**"
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index.cjs" },
-    { "source": "/(.*)",       "destination": "/api/index.cjs" }
+    { "source": "/api/:path*", "destination": "/api/index.js" },
+    { "source": "/(.*)",       "destination": "/api/index.js" }
   ]
 }
