@@ -3,7 +3,6 @@ const express = require('express');
 const path    = require('path');
 const cors    = require('cors');
 const fs      = require('fs');
-const http    = require('http');
 
 const app  = express();
 const PORT = parseInt(process.env.PORT || '7860', 10);
@@ -62,62 +61,18 @@ app.get('/api/stats', authenticateToken, requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── Serve Frontend ─────────────────────────────────────────────────────────
-// TanStack Start (Nitro) outputs to .output/public/ (static assets)
-// and .output/server/index.mjs (SSR handler).
-// In production we proxy non-API requests to the Nitro server.
-// In development the Vite dev server handles this (proxy in vite.config.ts).
-
-const nitroServerPath = path.join(__dirname, '.output', 'server', 'index.mjs');
+// ── Serve Frontend (static SPA build) ──────────────────────────────────────
 const staticPublicDir = path.join(__dirname, '.output', 'public');
+const indexHtml = path.join(staticPublicDir, 'index.html');
 
-if (fs.existsSync(nitroServerPath)) {
-  // Serve static assets directly (faster, no SSR overhead)
-  if (fs.existsSync(staticPublicDir)) {
-    app.use(express.static(staticPublicDir));
-  }
-
-  // Spin up Nitro on an internal port and proxy all page requests to it
-  const NITRO_PORT = PORT + 1;
-
-  // Lazy-load http-proxy only when needed (avoid cold-start in dev)
-  let proxy;
-  try { proxy = require('http-proxy'); } catch { proxy = null; }
-
-  if (proxy) {
-    const proxyServer = proxy.createProxyServer({ target: `http://127.0.0.1:${NITRO_PORT}`, ws: true });
-
-    app.use((req, res, next) => {
-      if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
-      proxyServer.web(req, res, {}, (err) => {
-        console.error('Nitro proxy error:', err.message);
-        res.status(502).send('App loading… please wait a moment and refresh.');
-      });
-    });
-
-    // Start Nitro server
-    const { execFile } = require('child_process');
-    const nitro = execFile('node', [nitroServerPath], {
-      env: { ...process.env, PORT: String(NITRO_PORT), NODE_ENV: 'production' },
-    });
-    nitro.stdout?.pipe(process.stdout);
-    nitro.stderr?.pipe(process.stderr);
-
-  } else {
-    // Fallback: serve index.html for all page routes (SPA mode)
-    const indexHtml = path.join(staticPublicDir, 'index.html');
-    if (fs.existsSync(indexHtml)) {
-      app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads'))
-          res.sendFile(indexHtml);
-      });
-    }
-  }
-
-} else {
-  // Dev fallback — nothing to serve (Vite handles it)
-  console.log('ℹ️  No production build found — run `npm run build` first');
+if (fs.existsSync(staticPublicDir)) {
+  app.use(express.static(staticPublicDir, { index: ['index.html'] }));
 }
+
+// SPA fallback for all remaining routes (not API, not uploads, not static files)
+app.get('*', (req, res) => {
+  res.sendFile(indexHtml);
+});
 
 // ── Connect MongoDB then start ─────────────────────────────────────────────
 const { connect } = require('./database/db.cjs');
