@@ -1,24 +1,23 @@
 const express = require('express');
 const multer   = require('multer');
-const path     = require('path');
 const { Student, Teacher } = require('../database/models.cjs');
 const { authenticateToken, requireAdmin } = require('../middleware/auth.cjs');
 
 const router = express.Router();
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename:    (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase().replace(/[^.a-z]/g, '');
-    cb(null, `student_${Date.now()}${ext}`);
-  },
-});
+
+// Use memoryStorage — Vercel's filesystem is read-only (no disk writes allowed).
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits:     { fileSize: 3 * 1024 * 1024 },
   fileFilter: (req, file, cb) => cb(null, ALLOWED_MIME.has(file.mimetype)),
 });
+
+function fileToDataUrl(file) {
+  if (!file) return undefined;
+  return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+}
 
 async function withTeacherName(students) {
   const teacherIds = [...new Set(students.map(s => s.teacher_id).filter(Boolean))];
@@ -73,7 +72,7 @@ router.post('/', authenticateToken, upload.single('profile_pic'), async (req, re
       class_name:            String(class_name).slice(0, 30),
       roll_no:               roll_no ? parseInt(roll_no) : undefined,
       overall_grade:         overall_grade || undefined,
-      profile_pic_url:       req.file ? `/uploads/${req.file.filename}` : undefined,
+      profile_pic_url:       fileToDataUrl(req.file),
       teacher_id:            tid || undefined,
     });
     res.status(201).json({ ...student.toObject(), id: student._id, message: 'Student added' });
@@ -98,7 +97,7 @@ router.put('/:id', authenticateToken, upload.single('profile_pic'), async (req, 
       roll_no:               req.body.roll_no !== undefined ? parseInt(req.body.roll_no) : s.roll_no,
       overall_grade:         req.body.overall_grade         ?? s.overall_grade,
     };
-    if (req.file) updates.profile_pic_url = `/uploads/${req.file.filename}`;
+    if (req.file) updates.profile_pic_url = fileToDataUrl(req.file);
 
     const updated = await Student.findByIdAndUpdate(req.params.id, updates, { new: true });
     const [enriched] = await withTeacherName([updated]);
