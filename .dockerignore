@@ -1,0 +1,17 @@
+node_modules
+.git
+.env
+.env.*
+*.log
+dist
+dist-ssr
+.output
+.nitro
+.vinxi
+.tanstack
+uploads
+database/school-data.json
+database/school-data.json.tmp
+SD Model Connect
+README.md
+.DS_Store
