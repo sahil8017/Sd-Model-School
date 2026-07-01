@@ -30,6 +30,25 @@ COPY services/      ./services/
 # Built frontend + SSR server from Stage 1
 COPY --from=builder /app/.output ./.output
 
+# Ensure index.html exists (fallback for SPA routing)
+RUN mkdir -p .output/public && \
+    if [ ! -f .output/public/index.html ]; then \
+      cat > .output/public/index.html << 'EOF'
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>S.D. Model Sr. Sec. School, Karnal — Management System</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/assets/index-6bXTEkIM.js"></script>
+  </body>
+</html>
+EOF
+    fi
+
 # Persistent uploads directory (writable by app user)
 RUN mkdir -p uploads
 
