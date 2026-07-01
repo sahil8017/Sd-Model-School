@@ -4,7 +4,7 @@
  * Key differences from a long-running Express server:
  *  - Each invocation is stateless (no persistent in-memory state).
  *  - MongoDB connection is cached across warm invocations via the module cache.
- *  - Dynamic ESM import() of local files is avoided (CJS runtime limitation).
+ *  - Dynamic ESM import() of local files is avoided during trace, but loaded via includeFiles.
  */
 
 'use strict';
@@ -14,6 +14,7 @@ require('dotenv').config();
 const express  = require('express');
 const cors     = require('cors');
 const path     = require('path');
+const fs       = require('fs');
 const mongoose = require('mongoose');
 
 // ── Cached DB connection (survives warm Lambda restarts) ─────────────────────
@@ -108,14 +109,75 @@ app.get('/api/stats', authenticateToken, requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── SPA fallback — serve index.html for all non-API routes ───────────────────
-// Vercel's "outputDirectory" already serves static files from dist/client,
-// so this only fires when the filesystem router doesn't match (i.e. SPA routes).
-const indexPath = path.join(__dirname, '..', 'dist', 'client', 'index.html');
-app.get('*', (_req, res) => {
-  res.sendFile(indexPath, err => {
-    if (err) res.status(404).send('Not found');
-  });
+// ── Serve Frontend via SSR ───────────────────────────────────────────────────
+const ssrServerPath = path.join(__dirname, '..', 'dist', 'server', 'server.js');
+let ssrHandler = null;
+
+function webFetchBridge(fetchHandler) {
+  return async (req, res) => {
+    try {
+      const protocol = req.socket.encrypted ? 'https' : 'http';
+      const host = req.headers.host || 'localhost';
+      const url = `${protocol}://${host}${req.url}`;
+
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      const body = chunks.length > 0 ? Buffer.concat(chunks) : undefined;
+
+      const webRequest = new Request(url, {
+        method: req.method,
+        headers: req.headers,
+        body: body && body.length > 0 ? body : undefined,
+        duplex: 'half',
+      });
+
+      const webResponse = await fetchHandler(webRequest);
+
+      res.statusCode = webResponse.status;
+      for (const [key, value] of webResponse.headers.entries()) {
+        res.setHeader(key, value);
+      }
+      const responseBody = await webResponse.arrayBuffer();
+      res.end(Buffer.from(responseBody));
+    } catch (err) {
+      console.error('SSR fetch bridge error:', err);
+      res.statusCode = 500;
+      res.end('Internal Server Error');
+    }
+  };
+}
+
+async function getSsrHandler() {
+  if (ssrHandler) return ssrHandler;
+  if (fs.existsSync(ssrServerPath)) {
+    try {
+      const m = await import(ssrServerPath);
+      const ssrApp = m.default || m;
+      if (ssrApp && typeof ssrApp.fetch === 'function') {
+        ssrHandler = webFetchBridge(ssrApp.fetch);
+        console.log('✅ Vite SSR Handler loaded successfully in serverless context');
+        return ssrHandler;
+      }
+    } catch (err) {
+      console.error('❌ Failed to load SSR handler in serverless context:', err);
+    }
+  }
+  return null;
+}
+
+app.get('*', async (req, res) => {
+  const handler = await getSsrHandler();
+  if (handler) {
+    await handler(req, res);
+  } else {
+    // SPA fallback in case SSR server bundle is not generated/found
+    const indexPath = path.join(__dirname, '..', 'dist', 'client', 'index.html');
+    res.sendFile(indexPath, err => {
+      if (err) {
+        res.status(503).send('<h1>App is starting up…</h1><p>The SSR engine is initializing or not built yet.</p>');
+      }
+    });
+  }
 });
 
 module.exports = app;
