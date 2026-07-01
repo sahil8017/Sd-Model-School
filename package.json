@@ -7,12 +7,10 @@
   "description": "S.D. Model Sr. Sec. School, Karnal — Management System",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && node scripts/generate-index.cjs",
     "preview": "vite preview",
     "api": "node server.cjs",
-    "start": "/bin/sh start.sh",
-    "start:nitro": "node .output/server/index.mjs",
-    "start:api": "node server.cjs",
+    "start": "node server.cjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

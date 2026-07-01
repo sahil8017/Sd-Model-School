@@ -12,28 +12,23 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  // Use 'node' preset so the build produces a plain Node.js HTTP server
-  // (.output/server/index.mjs) that works inside Docker / Hugging Face Spaces.
-  //
-  // routeRules proxy /api/* and /uploads/* to the Express API server
-  // which runs on port 3001 internally (started by start.sh alongside Nitro).
-  nitro: {
-    preset: "node",
-    routeRules: {
-      "/api/**": { proxy: "http://127.0.0.1:3001/api/**" },
-      "/uploads/**": { proxy: "http://127.0.0.1:3001/uploads/**" },
-    },
-  },
+  // Disable Nitro bundling — the nf3/@vercel/nft dependency tracer used by the
+  // node-server preset crashes on HuggingFace's Docker builder due to a CJS/ESM
+  // named-export incompatibility. We don't need SSR for this auth-gated
+  // management app; the Vite client build produces a full SPA bundle.
+  // A post-build script (scripts/generate-index.cjs) creates index.html from
+  // the content-hashed assets so Express can serve the SPA correctly.
+  nitro: false,
   vite: {
     server: {
       // Proxy /api/* and /uploads/* to the Express backend in dev (port 3001)
       proxy: {
         "/api": {
-          target: `http://localhost:3001`,
+          target: "http://localhost:3001",
           changeOrigin: true,
         },
         "/uploads": {
-          target: `http://localhost:3001`,
+          target: "http://localhost:3001",
           changeOrigin: true,
         },
       },
